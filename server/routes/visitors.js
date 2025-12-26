@@ -5,8 +5,15 @@ const Visitor = require('../models/Visitor');
 // Ziyaretçi sayısını getir ve yeni ziyaretçiyi (IP yoksa) kaydet
 router.post('/', async (req, res) => {
     try {
-        // IP adresini al (Proxy arkasında ise x-forwarded-for, yoksa remoteAddress)
-        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        // req.ip works best with app.set('trust proxy', 1)
+        let ip = req.ip;
+
+        // Fallback or explicit check if req.ip gives ::1 or similar local
+        if (req.headers['x-forwarded-for']) {
+            ip = req.headers['x-forwarded-for'].split(',')[0].trim();
+        } else if (!ip || ip === '::1') {
+            ip = req.socket.remoteAddress;
+        }
 
         // Bu IP veritabanında var mı?
         let visitor = await Visitor.findOne({ ip });

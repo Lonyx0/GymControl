@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
+app.set('trust proxy', 1); // Render vb. proxy arkasında çalışırken IP'yi doğru almak için gerekli
 const http = require('http');
 const { Server } = require('socket.io');
 
