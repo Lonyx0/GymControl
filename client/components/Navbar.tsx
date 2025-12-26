@@ -16,7 +16,7 @@ export default function Navbar() {
         // Ziyaretçi sayısını al ve kaydet
         const fetchVisitorCount = async () => {
             try {
-                const res = await fetch('http://localhost:5001/api/visitors', { method: 'POST' });
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001'}/api/visitors`, { method: 'POST' });
                 const data = await res.json();
                 setVisitorCount(data.count);
             } catch (err) {
@@ -26,7 +26,7 @@ export default function Navbar() {
 
         fetchVisitorCount();
 
-        const socket = io('http://localhost:5001');
+        const socket = io(process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5001');
 
         socket.on('activeUsers', (count: number) => {
             setOnlineCount(count);
