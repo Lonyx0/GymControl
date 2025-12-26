@@ -45,6 +45,7 @@ app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/gallery', require('./routes/gallery'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/visitors', require('./routes/visitors'));
+app.use('/api/profile', require('./routes/profile'));
 
 // Statik klasör (Resimler için)
 app.use('/uploads', express.static('uploads'));

@@ -28,6 +28,9 @@ const UserSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    height: Number,
+    weight: Number,
+    profilePicture: String,
     resetPasswordToken: String,
     resetPasswordExpire: Date
 });
