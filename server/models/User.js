@@ -31,6 +31,12 @@ const UserSchema = new mongoose.Schema({
     height: Number,
     weight: Number,
     profilePicture: String,
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    verificationCode: String,
+    verificationCodeExpire: Date,
     resetPasswordToken: String,
     resetPasswordExpire: Date
 });

@@ -31,9 +31,68 @@ router.post('/register', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(password, salt);
 
+        // Doğrulama Kodu Oluştur (6 haneli)
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        user.verificationCode = verificationCode;
+        user.verificationCodeExpire = Date.now() + 10 * 60 * 1000; // 10 dakika
+
         await user.save();
 
-        // Token oluştur
+        // E-posta gönder
+        const message = `
+        Hesabınızı doğrulamak için lütfen aşağıdaki kodu giriniz: \n\n ${verificationCode} \n\n
+        Bu kodu kimseyle paylaşmayınız.
+        `;
+
+        try {
+            await sendEmail({
+                email: user.email,
+                subject: 'Hesap Doğrulama Kodu',
+                message
+            });
+
+            res.json({ msg: 'Doğrulama kodu e-posta adresinize gönderildi.', email: user.email });
+        } catch (err) {
+            console.error(err);
+            // E-posta gönderilemezse kullanıcıyı sil veya bir çözüm sun (Şimdilik hata dönüyoruz)
+            return res.status(500).json({ msg: 'E-posta gönderilemedi' });
+        }
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Sunucu hatası');
+    }
+});
+
+// @route   POST api/auth/verify
+// @desc    Email doğrulama
+// @access  Public
+router.post('/verify', async (req, res) => {
+    const { email, code } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(400).json({ msg: 'Kullanıcı bulunamadı' });
+        }
+
+        if (user.isVerified) {
+            return res.status(400).json({ msg: 'Bu hesap zaten doğrulanmış' });
+        }
+
+        if (user.verificationCode !== code) {
+            return res.status(400).json({ msg: 'Geçersiz doğrulama kodu' });
+        }
+
+        if (user.verificationCodeExpire < Date.now()) {
+            return res.status(400).json({ msg: 'Doğrulama kodunun süresi dolmuş' });
+        }
+
+        user.isVerified = true;
+        user.verificationCode = undefined;
+        user.verificationCodeExpire = undefined;
+        await user.save();
+
         const payload = {
             user: {
                 id: user.id,
@@ -50,6 +109,7 @@ router.post('/register', async (req, res) => {
                 res.json({ token, user: { id: user.id, name: user.name, role: user.role, gender: user.gender } });
             }
         );
+
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Sunucu hatası');
@@ -71,6 +131,10 @@ router.post('/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ msg: 'Geçersiz kimlik bilgileri.' });
+        }
+
+        if (!user.isVerified && user.role !== 'admin') {
+            return res.status(400).json({ msg: 'Lütfen önce e-posta adresinizi doğrulayınız.' });
         }
 
         const payload = {
